@@ -123,16 +123,10 @@ IMPORTANTE: Suas respostas devem ser CURTAS (2-3 frases no máximo) e SUPER FÁC
                 "filtered": False
             }
             
-        except openai.APIError as e:
-            return {
-                "success": False,
-                "response": "Ops! Tive um probleminha. Pode tentar de novo? 🔄",
-                "error": str(e)
-            }
         except Exception as e:
             return {
                 "success": False,
-                "response": "Desculpe, algo deu errado. Vamos tentar novamente? 💫",
+                "response": "Ops! Tive um probleminha. Pode tentar de novo? 🔄",
                 "error": str(e)
             }
 
