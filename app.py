@@ -17,7 +17,9 @@ def create_app(config_name=None):
     app.config.from_object(config[config_name])
     
     # Configurar CORS
-    CORS(app, origins=app.config['ALLOWED_ORIGINS'], supports_credentials=True)
+    CORS(app, origins=app.config['ALLOWED_ORIGINS'], supports_credentials=True, 
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+         allow_headers=['Content-Type', 'Authorization'])
     
     # Inicializar JWT
     jwt.init_app(app)
@@ -27,9 +29,9 @@ def create_app(config_name=None):
     from routes.auth import auth_bp
     from routes.health import health_bp
     
-    app.register_blueprint(health_bp, url_prefix='/api')
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(chat_bp, url_prefix='/api/chat')
+    app.register_blueprint(health_bp)
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(chat_bp, url_prefix='/chat')
     
     return app
 
