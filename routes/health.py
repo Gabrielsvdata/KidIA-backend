@@ -8,7 +8,7 @@ def health_check():
     """Verifica se a API está funcionando"""
     return jsonify({
         "status": "healthy",
-        "service": "KidIA Backend",
+        "service": "Kiko Backend",
         "version": "1.0.0"
     }), 200
 
@@ -17,7 +17,7 @@ def health_check():
 def index():
     """Rota inicial da API"""
     return jsonify({
-        "message": "Bem-vindo à API do KidIA! 🌟",
+        "message": "Bem-vindo à API do Kiko! 🌟",
         "description": "Chatbot educativo para crianças",
         "endpoints": {
             "health": "/api/health",
