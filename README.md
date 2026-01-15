@@ -1,15 +1,12 @@
 # 🧒🤖 KidIA - Chatbot Educativo para Crianças
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/Flask-2.0+-green?style=for-the-badge&logo=flask&logoColor=white" />
-  <img src="https://img.shields.io/badge/Groq-LLaMA%203-purple?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Deploy-Render-orange?style=for-the-badge" />
+  <img src="https://raw.githubusercontent.com/Gabrielsvdata/KidIA-assets/main/kiko-front.png" alt="Kiko, mascote do KidIA" width="260"/>
 </p>
 
 ## 🎯 Sobre o Projeto
 
-O **KidIA** é um assistente virtual inteligente desenvolvido especialmente para crianças de **4 a 12 anos**. Ele oferece uma experiência de conversa **segura, educativa e divertida**, com linguagem adaptada para o público infantil e múltiplas camadas de proteção.
+O **KidIA** é um assistente virtual inteligente desenvolvido especialmente para crianças de **4 a 12 anos**. Ele oferece uma experiência de conversa segura, educativa e divertida, com linguagem adaptada para o público infantil e múltiplas camadas de proteção.
 
 ### 🌐 Links do Projeto
 
@@ -22,45 +19,45 @@ O **KidIA** é um assistente virtual inteligente desenvolvido especialmente para
 
 ## ✨ Funcionalidades
 
-### Para Crianças 👧👦
-- 💬 Chat interativo com IA amigável e educativa
-- 🎨 Avatares personalizados para cada perfil
-- 📚 Respostas adaptadas por idade (4-12 anos)
-- 🛡️ Ambiente 100% seguro e filtrado
+### Para Crianças
+- Chat interativo com IA amigável e educativa
+- Avatares personalizados para cada perfil
+- Respostas adaptadas por idade (4-12 anos)
+- Ambiente 100% seguro e filtrado
 
-### Para Responsáveis 👨‍👩‍👧
-- 🔐 Cadastro e login seguro com JWT
-- 👶 Criação de múltiplos perfis de crianças
-- 🎂 Configuração de idade para respostas personalizadas
-- 📊 Controle total sobre os perfis
+### Para Responsáveis
+- Cadastro e login seguro com JWT
+- Criação de múltiplos perfis de crianças
+- Configuração de idade para respostas personalizadas
+- Controle total sobre os perfis
 
-### Segurança 🔒
-- 🚫 Filtro automático de conteúdo inapropriado
-- 🍪 Autenticação via cookies HttpOnly
-- ⏱️ Rate limiting contra abusos
-- 🛡️ Headers de segurança (CORS, CSP, HSTS)
+### Segurança
+- Filtro automático de conteúdo inapropriado
+- Autenticação via cookies HttpOnly
+- Rate limiting contra abusos
+- Headers de segurança (CORS, CSP, HSTS)
 
 ---
 
 ## 🛠️ Tecnologias
 
 ### Backend
-- **Python 3.9+** - Linguagem principal
-- **Flask** - Framework web
-- **Flask-JWT-Extended** - Autenticação JWT
-- **Groq API** - IA (LLaMA 3 70B) - Rápida e gratuita
-- **Gunicorn** - Servidor WSGI de produção
+- Python 3.9+
+- Flask
+- Flask-JWT-Extended
+- Groq API (LLaMA 3 70B)
+- Gunicorn
 
 ### Frontend
-- **React** - Biblioteca UI
-- **TypeScript** - Tipagem estática
-- **Tailwind CSS** - Estilização
-- **Vercel** - Deploy e hosting
+- React 18
+- Framer Motion
+- SASS
+- Vercel
 
 ### Infraestrutura
-- **Render** - Hosting do backend
-- **MySQL** - Banco de dados (opcional)
-- **In-Memory Storage** - Fallback sem banco
+- Render (backend)
+- MySQL (opcional)
+- In-Memory Storage (fallback)
 
 ---
 
