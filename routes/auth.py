@@ -61,7 +61,7 @@ def set_auth_cookies(response, access_token: str, refresh_token: str = None):
             secure=is_production,
             samesite=samesite_value,
             max_age=604800,  # 7 dias
-            path='/auth/'  # Apenas para rotas de auth (com barra final)
+            path='/'  # Path raiz para garantir envio em todas as requisições
         )
     
     return response
@@ -70,7 +70,7 @@ def set_auth_cookies(response, access_token: str, refresh_token: str = None):
 def clear_auth_cookies(response):
     """Remove cookies de autenticação"""
     response.delete_cookie('access_token', path='/')
-    response.delete_cookie('refresh_token', path='/auth/')
+    response.delete_cookie('refresh_token', path='/')
     return response
 
 

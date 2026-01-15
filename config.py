@@ -19,7 +19,7 @@ class Config:
     JWT_ACCESS_COOKIE_NAME = 'access_token'
     JWT_REFRESH_COOKIE_NAME = 'refresh_token'
     JWT_ACCESS_COOKIE_PATH = '/'
-    JWT_REFRESH_COOKIE_PATH = '/auth/'
+    JWT_REFRESH_COOKIE_PATH = '/'
     
     # CSRF
     CSRF_COOKIE_NAME = 'csrf_token'
