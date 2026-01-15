@@ -102,6 +102,7 @@ def quick_message():
     """
     Endpoint sem autenticação para testes rápidos.
     Limitado a menos requisições.
+    Agora com suporte a histórico de conversa!
     """
     try:
         data = request.get_json()
@@ -110,6 +111,7 @@ def quick_message():
             return ErrorHandler.validation_error("Por favor, envie uma mensagem")
         
         message = data.get('message', '').strip()
+        conversation_history = data.get('conversation_history', [])
         
         # Validar e sanitizar
         msg_valid, msg_error = InputValidator.validate_message(message)
@@ -121,8 +123,8 @@ def quick_message():
         if not message:
             return ErrorHandler.validation_error("A mensagem está vazia")
         
-        # Obter resposta do chatbot
-        result = chat_service.get_response(message)
+        # Obter resposta do chatbot (agora com histórico)
+        result = chat_service.get_response(message, None, conversation_history)
         
         return jsonify(result), 200 if result['success'] else 500
         
