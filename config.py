@@ -19,7 +19,7 @@ class Config:
     JWT_ACCESS_COOKIE_NAME = 'access_token'
     JWT_REFRESH_COOKIE_NAME = 'refresh_token'
     JWT_ACCESS_COOKIE_PATH = '/'
-    JWT_REFRESH_COOKIE_PATH = '/auth'
+    JWT_REFRESH_COOKIE_PATH = '/auth/'
     
     # CSRF
     CSRF_COOKIE_NAME = 'csrf_token'
@@ -60,7 +60,7 @@ class ProductionConfig(Config):
     """Configurações de produção"""
     DEBUG = False
     JWT_COOKIE_SECURE = True  # Apenas HTTPS
-    JWT_COOKIE_SAMESITE = 'Strict'
+    JWT_COOKIE_SAMESITE = 'None'  # Necessário para cross-origin (frontend Vercel, backend Render)
     RATELIMIT_STORAGE_URI = os.getenv('REDIS_URL', "memory://")
     
 

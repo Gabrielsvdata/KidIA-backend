@@ -66,13 +66,17 @@ def create_app(config_name=None):
         token = CSRFProtection.generate_token()
         response = jsonify({"success": True})
         
+        is_production = not app.config.get('DEBUG', False)
+        # Em produção cross-origin: SameSite=None + Secure=True
+        samesite_value = 'None' if is_production else 'Lax'
+        
         # Cookie CSRF não é httpOnly para o JS poder ler
         response.set_cookie(
             CSRFProtection.COOKIE_NAME,
             token,
             httponly=False,  # JS precisa ler
-            secure=not app.config.get('DEBUG', False),
-            samesite='Lax' if app.config.get('DEBUG', False) else 'Strict',
+            secure=is_production,
+            samesite=samesite_value,
             max_age=86400  # 24 horas
         )
         

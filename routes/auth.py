@@ -37,13 +37,17 @@ def set_auth_cookies(response, access_token: str, refresh_token: str = None):
     """Define cookies de autenticação na resposta"""
     is_production = not current_app.config.get('DEBUG', False)
     
+    # Em produção cross-origin: SameSite=None + Secure=True
+    # Em desenvolvimento: SameSite=Lax + Secure=False
+    samesite_value = 'None' if is_production else 'Lax'
+    
     # Access token cookie
     response.set_cookie(
         'access_token',
         access_token,
         httponly=True,
         secure=is_production,
-        samesite='Strict' if is_production else 'Lax',
+        samesite=samesite_value,
         max_age=900,  # 15 minutos
         path='/'
     )
@@ -55,9 +59,9 @@ def set_auth_cookies(response, access_token: str, refresh_token: str = None):
             refresh_token,
             httponly=True,
             secure=is_production,
-            samesite='Strict' if is_production else 'Lax',
+            samesite=samesite_value,
             max_age=604800,  # 7 dias
-            path='/auth'  # Apenas para rotas de auth
+            path='/auth/'  # Apenas para rotas de auth (com barra final)
         )
     
     return response
@@ -66,7 +70,7 @@ def set_auth_cookies(response, access_token: str, refresh_token: str = None):
 def clear_auth_cookies(response):
     """Remove cookies de autenticação"""
     response.delete_cookie('access_token', path='/')
-    response.delete_cookie('refresh_token', path='/auth')
+    response.delete_cookie('refresh_token', path='/auth/')
     return response
 
 
@@ -200,12 +204,14 @@ def refresh():
         
         # Atualizar cookie do access token
         is_production = not current_app.config.get('DEBUG', False)
+        samesite_value = 'None' if is_production else 'Lax'
+        
         response.set_cookie(
             'access_token',
             access_token,
             httponly=True,
             secure=is_production,
-            samesite='Strict' if is_production else 'Lax',
+            samesite=samesite_value,
             max_age=900,
             path='/'
         )
