@@ -1,308 +1,167 @@
-# KidIA Backend 🧒🤖
+# 🧒🤖 KidIA - Chatbot Educativo para Crianças
 
-API do chatbot educativo para crianças, desenvolvida com Python e Flask.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Flask-2.0+-green?style=for-the-badge&logo=flask&logoColor=white" />
+  <img src="https://img.shields.io/badge/Groq-LLaMA%203-purple?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Deploy-Render-orange?style=for-the-badge" />
+</p>
 
-## 📋 Sobre o Projeto
+## 🎯 Sobre o Projeto
 
-O **KidIA** é um chatbot inteligente desenvolvido especialmente para crianças de 4 a 12 anos. Ele oferece uma experiência de conversa segura, educativa e divertida, com linguagem adaptada para o público infantil e filtros de segurança integrados.
+O **KidIA** é um assistente virtual inteligente desenvolvido especialmente para crianças de **4 a 12 anos**. Ele oferece uma experiência de conversa **segura, educativa e divertida**, com linguagem adaptada para o público infantil e múltiplas camadas de proteção.
 
----
+### 🌐 Links do Projeto
 
-## Funcionalidades
-
-- ✅ **Chat com IA** adaptado para crianças (4-12 anos)
-- ✅ **Filtro de conteúdo** inapropriado automático
-- ✅ **Autenticação JWT** para responsáveis
-- ✅ **Perfis de crianças** personalizados
-- ✅ **Rate limiting** para segurança
-- ✅ **Headers de segurança** configurados
-- ✅ **Fallback inteligente** (funciona com ou sem banco de dados)
-
----
-
-## Estrutura do Projeto
-
-```
-KidIA backend/
-│
-├── app.py                  # 🚀 Ponto de entrada da aplicação (Factory Pattern)
-├── config.py               # ⚙️ Configurações da aplicação
-├── requirements.txt        # 📦 Dependências do projeto
-├── setup_database.py       # 🗄️ Script de configuração do banco
-│
-├── database/               # 🗃️ Camada de banco de dados
-│   ├── __init__.py
-│   ├── connection.py       # Conexão com MySQL
-│   └── schema.sql          # Script de criação das tabelas
-│
-├── middleware/             # Middlewares de segurança
-│   ├── __init__.py
-│   └── security.py         # Headers e proteções
-│
-├── routes/                 # Endpoints da API (Blueprints)
-│   ├── __init__.py
-│   ├── auth.py             # Rotas de autenticação
-│   ├── chat.py             # Rotas do chatbot
-│   └── health.py           # Rotas de health check
-│
-└── services/               # Lógica de negócio
-    ├── __init__.py
-    ├── auth_service.py     # Serviço de autenticação
-    └── chat_service.py     # Serviço do chatbot (Groq API)
-```
+| Serviço | URL |
+|---------|-----|
+| 🖥️ **Frontend** | [https://kid-ia.vercel.app](https://kid-ia.vercel.app) |
+| ⚙️ **Backend API** | [https://kidia-backend.onrender.com](https://kidia-backend.onrender.com) |
 
 ---
 
-## Descrição dos Arquivos
+## ✨ Funcionalidades
 
-### 🔹 Arquivos Principais
+### Para Crianças 👧👦
+- 💬 Chat interativo com IA amigável e educativa
+- 🎨 Avatares personalizados para cada perfil
+- 📚 Respostas adaptadas por idade (4-12 anos)
+- 🛡️ Ambiente 100% seguro e filtrado
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `app.py` | Factory function que cria a aplicação Flask, configura CORS, JWT e registra os blueprints |
-| `config.py` | Classes de configuração (Development/Production) com variáveis de ambiente |
-| `requirements.txt` | Lista de dependências Python do projeto |
+### Para Responsáveis 👨‍👩‍👧
+- 🔐 Cadastro e login seguro com JWT
+- 👶 Criação de múltiplos perfis de crianças
+- 🎂 Configuração de idade para respostas personalizadas
+- 📊 Controle total sobre os perfis
 
-### Database (`/database`)
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `connection.py` | Classe `Database` com métodos para conexão MySQL e execução de queries |
-| `schema.sql` | Script SQL para criar o banco `kidia_db` com tabelas: `parents`, `children`, `conversations`, `messages`, `refresh_tokens` |
-
-### Routes (`/routes`)
-
-| Arquivo | Endpoints | Descrição |
-|---------|-----------|-----------|
-| `auth.py` | `/api/auth/*` | Registro, login, refresh token, gerenciamento de perfis de crianças |
-| `chat.py` | `/api/chat/*` | Envio de mensagens para o chatbot com rate limiting |
-| `health.py` | `/api/health` | Verificação de status da API |
-
-### Services (`/services`)
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `auth_service.py` | Lógica de autenticação, hash de senhas, geração de tokens JWT, CRUD de usuários |
-| `chat_service.py` | Integração com Groq API, filtro de conteúdo, prompt do sistema para respostas infantis |
+### Segurança 🔒
+- 🚫 Filtro automático de conteúdo inapropriado
+- 🍪 Autenticação via cookies HttpOnly
+- ⏱️ Rate limiting contra abusos
+- 🛡️ Headers de segurança (CORS, CSP, HSTS)
 
 ---
 
-## Endpoints da API
+## 🛠️ Tecnologias
 
-### Autenticação (`/api/auth`)
+### Backend
+- **Python 3.9+** - Linguagem principal
+- **Flask** - Framework web
+- **Flask-JWT-Extended** - Autenticação JWT
+- **Groq API** - IA (LLaMA 3 70B) - Rápida e gratuita
+- **Gunicorn** - Servidor WSGI de produção
 
-| Método | Rota | Descrição | Auth |
-|--------|------|-----------|------|
-| `POST` | `/register` | Registra um novo responsável 
-| `POST` | `/login` | Autentica e retorna tokens 
-| `POST` | `/refresh` | Renova o access token | Refresh 
-| `GET` | `/me` | Retorna dados do usuário logado | JWT 
-| `POST` | `/children` | Adiciona perfil de criança | JWT 
-| `GET` | `/children` | Lista perfis de crianças | JWT 
-| `PUT` | `/children/<id>` | Atualiza perfil de criança | JWT 
-| `DELETE` | `/children/<id>` | Remove perfil de criança | JWT |
+### Frontend
+- **React** - Biblioteca UI
+- **TypeScript** - Tipagem estática
+- **Tailwind CSS** - Estilização
+- **Vercel** - Deploy e hosting
 
-### Chat (`/api/chat`)
-
-| Método | Rota | Descrição | Auth |
-|--------|------|-----------|------|
-| `POST` | `/message` | Envia mensagem para o chatbot | JWT |
-| `POST` | `/quick-message` | Mensagem rápida (sem auth, para testes) | ❌ |
-
-### Health (`/api`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/` | Informações da API |
-| `GET` | `/health` | Status de saúde da API |
+### Infraestrutura
+- **Render** - Hosting do backend
+- **MySQL** - Banco de dados (opcional)
+- **In-Memory Storage** - Fallback sem banco
 
 ---
 
-## 🚀 Instalação
+## 🚀 Como Executar Localmente
 
-### 1️ - Criar ambiente virtual
+### Pré-requisitos
+- Python 3.9+
+- pip
+
+### Instalação
 
 ```bash
+# 1. Clone o repositório
+git clone https://github.com/Gabrielsvdata/KidIA-backend.git
+cd KidIA-backend
+
+# 2. Crie e ative o ambiente virtual
 python -m venv venv
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
 
-# Windows
-venv\Scripts\activate
-
-# Linux/Mac
-source venv/bin/activate
-```
-
-### 2 - Instalar dependências
-
-```bash
+# 3. Instale as dependências
 pip install -r requirements.txt
-```
 
-### 3️ - Configurar variáveis de ambiente
+# 4. Configure as variáveis de ambiente
+cp .env.example .env
+# Edite o .env com suas chaves
 
-Crie um arquivo `.env` na raiz:
-
-```env
-# Chaves de segurança
-SECRET_KEY=sua-chave-secreta-aqui
-JWT_SECRET_KEY=sua-chave-jwt-aqui
-
-# API do Groq (obrigatório para o chat)
-GROQ_API_KEY=sua-chave-groq-aqui
-
-# CORS (origens permitidas)
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
-
-# Banco de dados MySQL (opcional)
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=sua-senha
-DB_NAME=kidia_db
-```
-
-### 4️⃣ Configurar banco de dados (opcional)
-
-```bash
-# Execute o schema no MySQL
-mysql -u root -p < database/schema.sql
-```
-
-> ⚠️ **Nota:** O sistema funciona sem MySQL! Usa memória como fallback.
-
-### 5️⃣ Executar
-
-```bash
-# Desenvolvimento
+# 5. Execute
 python app.py
-
-# Produção
-gunicorn app:create_app() -w 4 -b 0.0.0.0:5000
 ```
-
----
-
-## 🔧 Configurações
 
 ### Variáveis de Ambiente
 
-| Variável | Descrição | Padrão |
-|----------|-----------|--------|
-| `SECRET_KEY` | Chave secreta do Flask | `dev-secret-key` |
-| `JWT_SECRET_KEY` | Chave para tokens JWT | `jwt-dev-secret` |
-| `GROQ_API_KEY` | Chave da API Groq | - |
-| `ALLOWED_ORIGINS` | Origens CORS permitidas | `http://localhost:3000` |
-| `FLASK_ENV` | Ambiente (development/production) | `development` |
-
-### Limites de Segurança
-
-| Configuração | Valor | Descrição |
-|--------------|-------|-----------|
-| `MAX_MESSAGE_LENGTH` | 500 | Tamanho máximo da mensagem |
-| `MAX_REQUESTS_PER_MINUTE` | 10 | Rate limit por minuto |
-| `MIN_AGE` / `MAX_AGE` | 4-12 | Faixa etária permitida |
-
----
-
-## 🛡️ Segurança
-
-### Filtro de Conteúdo
-
-O chatbot bloqueia automaticamente temas inapropriados:
-- Violência e morte
-- Drogas e álcool
-- Conteúdo adulto
-- Palavrões
-
-### Proteções Implementadas
-
-- ✅ **JWT Authentication** com refresh tokens
-- ✅ **Rate Limiting** por usuário
-- ✅ **Sanitização de input** (remove caracteres perigosos)
-- ✅ **CORS** configurado
-- ✅ **Senhas hasheadas** com Werkzeug
-
----
-
-## 📡 Exemplos de Requisições
-
-### Registrar usuário
-
-```bash
-POST /api/auth/register
-Content-Type: application/json
-
-{
-  "email": "pai@exemplo.com",
-  "password": "SenhaForte123",
-  "name": "João Silva"
-}
-```
-
-### Login
-
-```bash
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "email": "pai@exemplo.com",
-  "password": "SenhaForte123"
-}
-```
-
-### Enviar mensagem
-
-```bash
-POST /api/chat/message
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "message": "Por que o céu é azul?",
-  "child_id": "uuid-da-crianca"
-}
+```env
+SECRET_KEY=sua-chave-secreta
+JWT_SECRET_KEY=sua-chave-jwt
+GROQ_API_KEY=sua-chave-groq
+ALLOWED_ORIGINS=http://localhost:3000
+FLASK_ENV=development
 ```
 
 ---
 
-## 🧪 Testes
+## 📡 Endpoints da API
 
-### Health Check
+### Autenticação `/auth`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/register` | Cadastra novo responsável |
+| POST | `/login` | Faz login (retorna cookies) |
+| POST | `/refresh` | Renova token de acesso |
+| POST | `/logout` | Faz logout |
+| GET | `/me` | Dados do usuário logado |
+| POST | `/children` | Cria perfil de criança |
+| GET | `/children` | Lista perfis |
 
-```bash
-curl http://localhost:5000/api/health
+### Chat `/chat`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/message` | Envia mensagem para a IA |
+
+### Health `/`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/health` | Status da API |
+
+---
+
+## 📁 Estrutura do Projeto
+
 ```
-
-### Quick Message (sem auth)
-
-```bash
-curl -X POST http://localhost:5000/api/chat/quick-message \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Olá!"}'
+KidIA-backend/
+├── app.py              # Aplicação Flask (Factory Pattern)
+├── config.py           # Configurações (Dev/Prod)
+├── gunicorn.conf.py    # Config do servidor
+├── requirements.txt    # Dependências
+│
+├── routes/             # Endpoints da API
+│   ├── auth.py         # Autenticação
+│   ├── chat.py         # Chat com IA
+│   └── health.py       # Health check
+│
+├── services/           # Lógica de negócio
+│   ├── auth_service.py # Autenticação
+│   ├── chat_service.py # Integração Groq
+│   └── memory_service.py
+│
+├── middleware/         # Middlewares
+│   └── security.py     # CSRF, validações, logs
+│
+└── database/           # Banco de dados
+    ├── connection.py   # Conexão MySQL
+    └── schema.sql      # Schema das tabelas
 ```
 
 ---
 
-## 📦 Dependências Principais
+## 👨‍💻 Autor
 
-| Pacote | Versão | Uso |
-|--------|--------|-----|
-| Flask | 3.0.0 | Framework web |
-| Flask-JWT-Extended | 4.6.0 | Autenticação JWT |
-| Flask-CORS | 4.0.0 | Cross-Origin Resource Sharing |
-| Groq | - | API de IA (LLM) |
-| Werkzeug | 3.0.1 | Hash de senhas |
-| Gunicorn | 21.2.0 | Servidor WSGI (produção) |
-
----
-
-## 🤝 Contribuição
-
-1. Faça um fork do projeto
-2. Crie uma branch (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -m 'Add nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request
+**Gabriel** - [GitHub](https://github.com/Gabrielsvdata)
 
 ---
 
@@ -312,7 +171,6 @@ Este projeto está sob a licença MIT.
 
 ---
 
-## 👨‍💻 Autor
-
-Desenvolvido para crianças aprenderem de forma divertida e segura!
-# KidIA-backend
+<p align="center">
+  Feito com 💜 para ajudar crianças a aprenderem de forma divertida e segura!
+</p>
