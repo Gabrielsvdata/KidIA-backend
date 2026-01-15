@@ -1,21 +1,27 @@
+"""
+Database Connection - Otimizado para Render
+============================================
+Pool de conexões com lazy loading para reduzir cold start
+"""
+
 import mysql.connector
 from mysql.connector import pooling
-from flask import current_app, g
+from flask import g
 import os
 
 
 class Database:
-    """Gerenciador de conexão com MySQL"""
+    """Gerenciador de conexão com MySQL - Lazy Loading"""
     
     _pool = None
     
     @classmethod
     def get_pool(cls):
-        """Obtém ou cria o pool de conexões"""
+        """Obtém ou cria o pool de conexões (lazy loading)"""
         if cls._pool is None:
             cls._pool = pooling.MySQLConnectionPool(
                 pool_name="kidia_pool",
-                pool_size=5,
+                pool_size=3,  # Reduzido para economizar RAM no Render
                 pool_reset_session=True,
                 host=os.getenv('MYSQL_HOST', 'localhost'),
                 port=int(os.getenv('MYSQL_PORT', 3306)),
@@ -23,7 +29,8 @@ class Database:
                 password=os.getenv('MYSQL_PASSWORD', ''),
                 database=os.getenv('MYSQL_DATABASE', 'kidia_db'),
                 charset='utf8mb4',
-                collation='utf8mb4_unicode_ci'
+                collation='utf8mb4_unicode_ci',
+                connect_timeout=10
             )
         return cls._pool
     
@@ -41,9 +48,6 @@ class Database:
             query: Query SQL
             params: Parâmetros da query
             fetch: 'one' para fetchone, 'all' para fetchall, None para execute
-        
-        Returns:
-            Resultado da query ou None
         """
         conn = None
         cursor = None

@@ -1,0 +1,22 @@
+# Build configuration for Render
+# ==============================
+
+services:
+  - type: web
+    name: kidia-backend
+    env: python
+    plan: free
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn --config gunicorn.conf.py app:app
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.7
+      - key: FLASK_ENV
+        value: production
+      - key: GUNICORN_WORKERS
+        value: 2
+      - key: GUNICORN_THREADS
+        value: 4
+      - key: LOG_LEVEL
+        value: warning

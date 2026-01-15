@@ -1,8 +1,19 @@
+# Core Flask - versões fixas para build mais rápido (cache do pip)
 flask==3.0.0
 flask-cors==4.0.0
 flask-jwt-extended==4.6.0
-python-dotenv==1.0.0
-groq>=0.4.0
+flask-limiter==3.5.0
 werkzeug==3.0.1
+
+# Utils
+python-dotenv==1.0.0
+bleach==6.1.0
+
+# Server
 gunicorn==21.2.0
-requests==2.31.0
+
+# AI - Groq (leve e rápido)
+groq>=0.4.0
+
+# Database
+mysql-connector-python==8.2.0

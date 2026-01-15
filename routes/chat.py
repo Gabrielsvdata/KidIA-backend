@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from services.chat_service import chat_service
 from services.memory_service import memory_service
+from middleware.security import InputValidator, ErrorHandler, SecureLogger, sanitize_request
 from functools import wraps
 import time
 
@@ -34,11 +35,10 @@ def rate_limit(max_requests=10, window=60):
                 _request_counts[user_id] = []
             
             # Verificar limite
+            remaining_time = int(window - (current_time - _request_counts[user_id][0])) if _request_counts[user_id] else window
+            
             if len(_request_counts[user_id]) >= max_requests:
-                return jsonify({
-                    "success": False,
-                    "message": "Muitas mensagens! Espere um pouquinho... ⏰"
-                }), 429
+                return ErrorHandler.rate_limit_error(remaining_time)
             
             # Registrar requisição
             _request_counts[user_id].append(current_time)
@@ -49,8 +49,9 @@ def rate_limit(max_requests=10, window=60):
 
 
 @chat_bp.route('/message', methods=['POST'])
-@jwt_required()
+@jwt_required(locations=['cookies', 'headers'])
 @rate_limit(max_requests=10, window=60)
+@sanitize_request
 def send_message():
     """
     Recebe uma mensagem e retorna a resposta do chatbot.
@@ -67,20 +68,22 @@ def send_message():
         data = request.get_json()
         
         if not data or 'message' not in data:
-            return jsonify({
-                "success": False,
-                "message": "Por favor, envie uma mensagem"
-            }), 400
+            return ErrorHandler.validation_error("Por favor, envie uma mensagem")
         
         message = data.get('message', '').strip()
         child_id = data.get('child_id')
         conversation_history = data.get('conversation_history', [])
         
+        # Validar mensagem
+        msg_valid, msg_error = InputValidator.validate_message(message)
+        if not msg_valid:
+            return ErrorHandler.validation_error(msg_error)
+        
+        # Sanitizar mensagem
+        message = InputValidator.sanitize_string(message, max_length=2000)
+        
         if not message:
-            return jsonify({
-                "success": False,
-                "message": "A mensagem está vazia"
-            }), 400
+            return ErrorHandler.validation_error("A mensagem está vazia")
         
         # Obter resposta do chatbot (com memória se child_id fornecido)
         result = chat_service.get_response(message, child_id, conversation_history)
@@ -88,15 +91,13 @@ def send_message():
         return jsonify(result), 200 if result['success'] else 500
         
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Ops! Algo deu errado. Tente novamente! 🔄",
-            "error": str(e)
-        }), 500
+        SecureLogger.error("Erro no chat", include_trace=True)
+        return ErrorHandler.internal_error(e)
 
 
 @chat_bp.route('/quick-message', methods=['POST'])
 @rate_limit(max_requests=5, window=60)
+@sanitize_request
 def quick_message():
     """
     Endpoint sem autenticação para testes rápidos.
@@ -106,18 +107,19 @@ def quick_message():
         data = request.get_json()
         
         if not data or 'message' not in data:
-            return jsonify({
-                "success": False,
-                "message": "Por favor, envie uma mensagem"
-            }), 400
+            return ErrorHandler.validation_error("Por favor, envie uma mensagem")
         
         message = data.get('message', '').strip()
         
+        # Validar e sanitizar
+        msg_valid, msg_error = InputValidator.validate_message(message)
+        if not msg_valid:
+            return ErrorHandler.validation_error(msg_error)
+        
+        message = InputValidator.sanitize_string(message, max_length=2000)
+        
         if not message:
-            return jsonify({
-                "success": False,
-                "message": "A mensagem está vazia"
-            }), 400
+            return ErrorHandler.validation_error("A mensagem está vazia")
         
         # Obter resposta do chatbot
         result = chat_service.get_response(message)
@@ -125,11 +127,8 @@ def quick_message():
         return jsonify(result), 200 if result['success'] else 500
         
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Ops! Algo deu errado. Tente novamente! 🔄",
-            "error": str(e)
-        }), 500
+        SecureLogger.error("Erro no quick-message", include_trace=True)
+        return ErrorHandler.internal_error(e)
 
 
 @chat_bp.route('/suggestions', methods=['GET'])
@@ -157,7 +156,7 @@ def get_suggestions():
 # =====================================================
 
 @chat_bp.route('/alerts', methods=['GET'])
-@jwt_required()
+@jwt_required(locations=['cookies', 'headers'])
 def get_alerts():
     """
     Retorna os alertas de perguntas sensíveis para os pais.
@@ -191,19 +190,20 @@ def get_alerts():
         }), 200
         
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Erro ao buscar alertas",
-            "error": str(e)
-        }), 500
+        SecureLogger.error("Erro ao buscar alertas", include_trace=True)
+        return ErrorHandler.internal_error(e)
 
 
 @chat_bp.route('/alerts/<alert_id>/read', methods=['POST'])
-@jwt_required()
+@jwt_required(locations=['cookies', 'headers'])
 def mark_alert_read(alert_id):
     """Marca um alerta específico como lido"""
     try:
         parent_id = get_jwt_identity()
+        
+        # Sanitizar alert_id
+        alert_id = InputValidator.sanitize_string(alert_id, max_length=36)
+        
         success = memory_service.mark_alert_as_read(alert_id, parent_id)
         
         if success:
@@ -212,21 +212,15 @@ def mark_alert_read(alert_id):
                 "message": "Alerta marcado como lido"
             }), 200
         else:
-            return jsonify({
-                "success": False,
-                "message": "Alerta não encontrado"
-            }), 404
+            return ErrorHandler.not_found_error("Alerta não encontrado")
             
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Erro ao marcar alerta",
-            "error": str(e)
-        }), 500
+        SecureLogger.error("Erro ao marcar alerta", include_trace=True)
+        return ErrorHandler.internal_error(e)
 
 
 @chat_bp.route('/alerts/read-all', methods=['POST'])
-@jwt_required()
+@jwt_required(locations=['cookies', 'headers'])
 def mark_all_alerts_read():
     """Marca todos os alertas como lidos"""
     try:
@@ -239,11 +233,8 @@ def mark_all_alerts_read():
         }), 200
         
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Erro ao marcar alertas",
-            "error": str(e)
-        }), 500
+        SecureLogger.error("Erro ao marcar alertas", include_trace=True)
+        return ErrorHandler.internal_error(e)
 
 
 # =====================================================
@@ -251,13 +242,16 @@ def mark_all_alerts_read():
 # =====================================================
 
 @chat_bp.route('/child/<child_id>/memory', methods=['GET'])
-@jwt_required()
+@jwt_required(locations=['cookies', 'headers'])
 def get_child_memory(child_id):
     """
     Retorna o contexto de memória de uma criança.
     (O que o Kiko lembra sobre ela)
     """
     try:
+        # Sanitizar child_id
+        child_id = InputValidator.sanitize_string(child_id, max_length=36)
+        
         context = memory_service.get_memory_context(child_id)
         
         return jsonify({
@@ -266,15 +260,13 @@ def get_child_memory(child_id):
         }), 200
         
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Erro ao buscar memória",
-            "error": str(e)
-        }), 500
+        SecureLogger.error("Erro ao buscar memória", include_trace=True)
+        return ErrorHandler.internal_error(e)
 
 
 @chat_bp.route('/child/<child_id>/memory', methods=['PUT'])
-@jwt_required()
+@jwt_required(locations=['cookies', 'headers'])
+@sanitize_request
 def update_child_memory(child_id):
     """
     Permite aos pais atualizar/corrigir informações da memória.
@@ -288,15 +280,28 @@ def update_child_memory(child_id):
     }
     """
     try:
+        # Sanitizar child_id
+        child_id = InputValidator.sanitize_string(child_id, max_length=36)
+        
         data = request.get_json()
         
         if not data:
-            return jsonify({
-                "success": False,
-                "message": "Dados não fornecidos"
-            }), 400
+            return ErrorHandler.validation_error("Dados não fornecidos")
         
-        updated_context = memory_service.update_memory_context(child_id, data)
+        # Sanitizar dados de entrada
+        sanitized_data = {}
+        for key, value in data.items():
+            if isinstance(value, str):
+                sanitized_data[key] = InputValidator.sanitize_string(value, max_length=200)
+            elif isinstance(value, list):
+                sanitized_data[key] = [
+                    InputValidator.sanitize_string(str(v), max_length=100) 
+                    for v in value[:10]  # Limitar a 10 items
+                ]
+            else:
+                sanitized_data[key] = value
+        
+        updated_context = memory_service.update_memory_context(child_id, sanitized_data)
         
         return jsonify({
             "success": True,
@@ -305,18 +310,18 @@ def update_child_memory(child_id):
         }), 200
         
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Erro ao atualizar memória",
-            "error": str(e)
-        }), 500
+        SecureLogger.error("Erro ao atualizar memória", include_trace=True)
+        return ErrorHandler.internal_error(e)
 
 
 @chat_bp.route('/child/<child_id>/end-session', methods=['POST'])
-@jwt_required()
+@jwt_required(locations=['cookies', 'headers'])
 def end_chat_session(child_id):
     """Encerra a sessão de conversa atual da criança"""
     try:
+        # Sanitizar child_id
+        child_id = InputValidator.sanitize_string(child_id, max_length=36)
+        
         session_id = memory_service.get_or_create_session(child_id)
         memory_service.end_session(session_id)
         
@@ -326,8 +331,5 @@ def end_chat_session(child_id):
         }), 200
         
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Erro ao encerrar sessão",
-            "error": str(e)
-        }), 500
+        SecureLogger.error("Erro ao encerrar sessão", include_trace=True)
+        return ErrorHandler.internal_error(e)
