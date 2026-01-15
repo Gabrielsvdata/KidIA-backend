@@ -104,11 +104,15 @@ class AuthService:
     def login(self, email: str, password: str) -> dict:
         """Autentica um usuário"""
         try:
-            if self._use_db():
+            use_db = self._use_db()
+            print(f"[LOGIN DEBUG] Usando DB: {use_db}, Email: {email}")
+            
+            if use_db:
                 return self._login_db(email, password)
             else:
                 return self._login_memory(email, password)
         except Exception as e:
+            print(f"[LOGIN DEBUG] Erro: {str(e)}")
             return {
                 "success": False,
                 "message": "Erro ao fazer login",
@@ -123,7 +127,10 @@ class AuthService:
             fetch='one'
         )
         
+        print(f"[LOGIN DEBUG] Usuário encontrado no DB: {user is not None}")
+        
         if not user or not check_password_hash(user["password_hash"], password):
+            print(f"[LOGIN DEBUG] Falha - user exists: {user is not None}")
             return {
                 "success": False,
                 "message": "Email ou senha incorretos"
