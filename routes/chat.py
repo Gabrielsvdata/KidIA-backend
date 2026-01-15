@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from services.chat_service import chat_service
+from services.memory_service import memory_service
 from functools import wraps
 import time
 
@@ -53,12 +54,13 @@ def rate_limit(max_requests=10, window=60):
 def send_message():
     """
     Recebe uma mensagem e retorna a resposta do chatbot.
+    Agora com memória persistente!
     
     Body:
     {
         "message": "string - pergunta da criança",
-        "child_id": "string - ID do perfil da criança",
-        "conversation_history": [array opcional de mensagens anteriores]
+        "child_id": "string - ID do perfil da criança (OBRIGATÓRIO para memória)",
+        "conversation_history": [array opcional - fallback se não usar child_id]
     }
     """
     try:
@@ -80,8 +82,8 @@ def send_message():
                 "message": "A mensagem está vazia"
             }), 400
         
-        # Obter resposta do chatbot
-        result = chat_service.get_response(message, conversation_history)
+        # Obter resposta do chatbot (com memória se child_id fornecido)
+        result = chat_service.get_response(message, child_id, conversation_history)
         
         return jsonify(result), 200 if result['success'] else 500
         
@@ -148,3 +150,184 @@ def get_suggestions():
         "success": True,
         "suggestions": suggestions
     }), 200
+
+
+# =====================================================
+# ROTAS DE ALERTAS PARA OS PAIS
+# =====================================================
+
+@chat_bp.route('/alerts', methods=['GET'])
+@jwt_required()
+def get_alerts():
+    """
+    Retorna os alertas de perguntas sensíveis para os pais.
+    
+    Query params:
+    - unread_only: bool (default: false) - retornar apenas não lidos
+    - limit: int (default: 50) - limite de alertas
+    """
+    try:
+        parent_id = get_jwt_identity()
+        unread_only = request.args.get('unread_only', 'false').lower() == 'true'
+        limit = min(int(request.args.get('limit', 50)), 100)
+        
+        if unread_only:
+            alerts = memory_service.get_unread_alerts(parent_id)
+        else:
+            alerts = memory_service.get_all_alerts(parent_id, limit)
+        
+        # Formatar datas para JSON
+        for alert in alerts:
+            if alert.get('created_at'):
+                alert['created_at'] = alert['created_at'].isoformat()
+            if alert.get('read_at'):
+                alert['read_at'] = alert['read_at'].isoformat()
+        
+        return jsonify({
+            "success": True,
+            "alerts": alerts,
+            "count": len(alerts),
+            "unread_count": len([a for a in alerts if not a.get('was_read')])
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "Erro ao buscar alertas",
+            "error": str(e)
+        }), 500
+
+
+@chat_bp.route('/alerts/<alert_id>/read', methods=['POST'])
+@jwt_required()
+def mark_alert_read(alert_id):
+    """Marca um alerta específico como lido"""
+    try:
+        parent_id = get_jwt_identity()
+        success = memory_service.mark_alert_as_read(alert_id, parent_id)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Alerta marcado como lido"
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Alerta não encontrado"
+            }), 404
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "Erro ao marcar alerta",
+            "error": str(e)
+        }), 500
+
+
+@chat_bp.route('/alerts/read-all', methods=['POST'])
+@jwt_required()
+def mark_all_alerts_read():
+    """Marca todos os alertas como lidos"""
+    try:
+        parent_id = get_jwt_identity()
+        count = memory_service.mark_all_alerts_as_read(parent_id)
+        
+        return jsonify({
+            "success": True,
+            "message": f"{count} alertas marcados como lidos"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "Erro ao marcar alertas",
+            "error": str(e)
+        }), 500
+
+
+# =====================================================
+# ROTAS DE MEMÓRIA/CONTEXTO DA CRIANÇA
+# =====================================================
+
+@chat_bp.route('/child/<child_id>/memory', methods=['GET'])
+@jwt_required()
+def get_child_memory(child_id):
+    """
+    Retorna o contexto de memória de uma criança.
+    (O que o Kiko lembra sobre ela)
+    """
+    try:
+        context = memory_service.get_memory_context(child_id)
+        
+        return jsonify({
+            "success": True,
+            "memory_context": context
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "Erro ao buscar memória",
+            "error": str(e)
+        }), 500
+
+
+@chat_bp.route('/child/<child_id>/memory', methods=['PUT'])
+@jwt_required()
+def update_child_memory(child_id):
+    """
+    Permite aos pais atualizar/corrigir informações da memória.
+    
+    Body:
+    {
+        "nome": "string",
+        "cor_favorita": "string",
+        "animal_favorito": "string",
+        "interesses": ["string", ...]
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "message": "Dados não fornecidos"
+            }), 400
+        
+        updated_context = memory_service.update_memory_context(child_id, data)
+        
+        return jsonify({
+            "success": True,
+            "message": "Memória atualizada",
+            "memory_context": updated_context
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "Erro ao atualizar memória",
+            "error": str(e)
+        }), 500
+
+
+@chat_bp.route('/child/<child_id>/end-session', methods=['POST'])
+@jwt_required()
+def end_chat_session(child_id):
+    """Encerra a sessão de conversa atual da criança"""
+    try:
+        session_id = memory_service.get_or_create_session(child_id)
+        memory_service.end_session(session_id)
+        
+        return jsonify({
+            "success": True,
+            "message": "Sessão encerrada"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "Erro ao encerrar sessão",
+            "error": str(e)
+        }), 500

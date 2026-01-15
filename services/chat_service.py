@@ -1,6 +1,7 @@
 from groq import Groq
 from flask import current_app
 import re
+from services.memory_service import memory_service
 
 
 class ChatService:
@@ -74,27 +75,84 @@ IMPORTANTE: Suas respostas devem ser CURTAS (2-3 frases no máximo) e SUPER FÁC
         max_length = current_app.config.get('MAX_MESSAGE_LENGTH', 500)
         return message[:max_length].strip()
     
-    def get_response(self, message: str, conversation_history: list = None) -> dict:
-        """Gera uma resposta para a mensagem da criança"""
+    def get_response(self, message: str, child_id: str = None, conversation_history: list = None) -> dict:
+        """
+        Gera uma resposta para a mensagem da criança.
+        
+        Args:
+            message: Mensagem da criança
+            child_id: ID da criança (para memória persistente)
+            conversation_history: Histórico manual (fallback se não tiver child_id)
+        """
         try:
             # Sanitizar entrada
             clean_message = self.sanitize_input(message)
             
             # Verificar se é segura
             is_safe, warning = self.is_safe_message(clean_message)
+            
+            # Variáveis para controle de alertas
+            sensitive_alert = None
+            session_id = None
+            
+            # Se temos child_id, usar memória persistente
+            if child_id:
+                # Obter ou criar sessão
+                session_id = memory_service.get_or_create_session(child_id)
+                
+                # Verificar conteúdo sensível e criar alerta se necessário
+                sensitive_alert = memory_service.check_sensitive_content(clean_message)
+                
+                # Extrair informações importantes da mensagem
+                extracted_info = memory_service.extract_info_from_message(clean_message)
+                if extracted_info:
+                    memory_service.update_memory_context(child_id, extracted_info)
+                
+                # Salvar mensagem do usuário
+                memory_service.save_message(session_id, 'user', clean_message)
+            
+            # Se mensagem não é segura, retornar aviso
             if not is_safe:
+                response_text = warning
+                
+                # Criar alerta para mensagem bloqueada
+                if child_id and session_id:
+                    memory_service.create_parent_alert(
+                        child_id=child_id,
+                        alert_type='tema_bloqueado',
+                        severity='media',
+                        title='Mensagem com tema bloqueado',
+                        content=f'A criança tentou falar sobre um tema bloqueado.',
+                        original_message=clean_message,
+                        kiko_response=response_text
+                    )
+                    memory_service.save_message(session_id, 'assistant', response_text)
+                
                 return {
                     "success": True,
-                    "response": warning,
+                    "response": response_text,
                     "filtered": True
                 }
             
-            # Preparar mensagens para a API
-            messages = [{"role": "system", "content": self.SYSTEM_PROMPT}]
+            # Preparar prompt do sistema com contexto de memória
+            system_prompt = self.SYSTEM_PROMPT
+            if child_id:
+                context_prompt = memory_service.build_context_prompt(child_id)
+                if context_prompt:
+                    system_prompt += context_prompt
             
-            # Adicionar histórico de conversa (se houver)
-            if conversation_history:
-                # Limitar histórico para economizar tokens
+            # Preparar mensagens para a API
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # Adicionar histórico de conversa
+            if child_id and session_id:
+                # Usar histórico da sessão (memória persistente)
+                recent_history = memory_service.get_recent_messages(session_id, limit=8)
+                # Excluir a última mensagem pois é a atual que acabamos de salvar
+                if recent_history:
+                    messages.extend(recent_history[:-1])
+            elif conversation_history:
+                # Fallback para histórico manual
                 recent_history = conversation_history[-6:]
                 messages.extend(recent_history)
             
@@ -117,10 +175,27 @@ IMPORTANTE: Suas respostas devem ser CURTAS (2-3 frases no máximo) e SUPER FÁC
             if not is_response_safe:
                 assistant_response = "Que tal conversarmos sobre outra coisa divertida? O que você gosta de fazer? 🎨"
             
+            # Salvar resposta do assistente na sessão
+            if child_id and session_id:
+                memory_service.save_message(session_id, 'assistant', assistant_response)
+                
+                # Criar alerta se mensagem era sensível
+                if sensitive_alert:
+                    memory_service.create_parent_alert(
+                        child_id=child_id,
+                        alert_type=sensitive_alert['type'],
+                        severity=sensitive_alert['severity'],
+                        title=sensitive_alert['title'],
+                        content=f"A criança fez uma pergunta/comentário que pode precisar de atenção.",
+                        original_message=clean_message,
+                        kiko_response=assistant_response
+                    )
+            
             return {
                 "success": True,
                 "response": assistant_response,
-                "filtered": False
+                "filtered": False,
+                "session_id": session_id
             }
             
         except Exception as e:
