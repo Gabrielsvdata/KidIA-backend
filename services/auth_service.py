@@ -63,8 +63,8 @@ class AuthService:
         password_hash = generate_password_hash(password)
         
         Database.execute_query(
-            """INSERT INTO parents (id, email, password_hash, name, role) 
-               VALUES (%s, %s, %s, %s, %s)""",
+            """INSERT INTO parents (id, email, password_hash, name, role, is_active) 
+               VALUES (%s, %s, %s, %s, %s, TRUE)""",
             (user_id, email, password_hash, name, 'parent')
         )
         
