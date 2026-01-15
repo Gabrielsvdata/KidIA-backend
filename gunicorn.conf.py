@@ -7,9 +7,8 @@ import os
 # Bind
 bind = f"0.0.0.0:{os.getenv('PORT', '5000')}"
 
-# Workers - Para Render Free (512MB RAM), usar poucos workers
-# Usar workers assíncronos (gevent) para melhor performance com I/O
-workers = int(os.getenv('GUNICORN_WORKERS', '2'))
+# Workers - FIXO em 1 para manter dados em memória consistentes (sem MySQL)
+workers = 1
 worker_class = os.getenv('GUNICORN_WORKER_CLASS', 'sync')  # 'gevent' se instalar gevent
 
 # Threads por worker (para sync workers)
